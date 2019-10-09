@@ -67,7 +67,8 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "musicTrace:build"
+            "browserTarget": "musicTrace:build",
+            "port": 5000
           },
           "configurations": {
             "production": {
