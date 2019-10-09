@@ -20,7 +20,6 @@ export class HomeService {
 
   constructor(
     private http: HttpClient,
-    private router: Router,
     private cookieService: CookieService
   ) { }
 
@@ -31,14 +30,14 @@ export class HomeService {
 
   /** Helper method to retrieve Spotify refresh token from cookie */
   _retrieveRefreshToken(): string {
-    this._refreshToken = this.cookieService.get('refresh-token');
+    this._refreshToken = this.cookieService.get('rfrs-tkn');
     return this._refreshToken;
   }
 
   /** Helper method to set Spotify refresh token cookie value */
   _setRefreshTokenCookie(value: string): void {
-    this.cookieService.set('refresh-token', value);
-    this._refreshToken = this.cookieService.get('refresh-token');
+    this.cookieService.set('rfrs-tkn', value);
+    this._refreshToken = this.cookieService.get('rfrs-tkn');
   }
 
 
@@ -70,6 +69,13 @@ export class HomeService {
   /** Sends access token to Spotify api to retrieve user playlists */
   playlistTracks(accessToken: string, playlistId: string): Observable<any> {
     return this.http.get<any>(`${this.spotifyEndpoint}playlist-tracks/${accessToken}/${playlistId}`);
+  }
+
+  /** Saves tracks to user library by id */
+  saveTracks(accessToken: string, ids: any): Observable<any> {
+    return this.http.post<any>(`${this.spotifyEndpoint}savetracks/${accessToken}`,
+      { ids: ids }
+    );
   }
 
 

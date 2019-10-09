@@ -13,6 +13,30 @@ const client_secret = 'a12f836d56624cad90af8e27522c1e0e'; // Spotify secret
 const redirect_uri = 'http://localhost:5000'; // Spotify redirect uri
 const stateKey = 'spotify_auth_state';
 
+
+/** Saves tracks to user's library */
+router.post('/savetracks/:accesstoken', (req, res) => {
+  let { ids } = req.body;
+  let { accesstoken } = req.params;
+  console.log(accesstoken);
+  // BQC-E2lkAZfy7Xtthsf0wOz2CjRGZooRTIyEO9fKERR5WsrJMOyIGdbIo81cmNOs15v-1v6W-KPEnftYVt2jLpSPzQ6b-ltcltloJLEbKS_jlJGroEQqO8cmbI21Qt80wUOvx0w-wiBZqoCsU1VtNHMZ8lYrtgmPBnOUPwp98U0YGyceCj4n7iGa6Q
+  let query = querystring.stringify({ scope: 'user-library-modify user-library-read' });
+
+  let saveTracks = () => {
+    return fetch(`https://api.spotify.com/v1/me/tracks?${query}`, {
+      method: 'put',
+      body: JSON.stringify(req.body),
+      headers: { 'Authorization': 'Bearer ' + req.params.accesstoken, 'Content-Type': 'application/json' },
+    }).then(response => {
+        return response.ok ? response.status : Promise.reject(response)
+      })
+      .then(body => res.status(200).json(body))
+      .catch(error => res.status(500).json({'Error Saving Tracks': error }));
+  }
+
+  try { saveTracks() } catch(err) { res.status(500).json("ERROR SAVING TRACKS" + err) }
+})
+
 /**
  * Retrieves all playlists owned or followed by a user from the Spotfiy api
  * 
@@ -26,15 +50,16 @@ router.get('/playlists/:accesstoken', (req, res) => {
   let totalPlaylists = [];
   
   let getPlaylists = (offset = 0) => {
-    let query = querystring.stringify({ scope: 'playlist-read-private playlist-read-collaborative', offset: parseInt(offset) });
-    fetch(`https://api.spotify.com/v1/me/playlists?${query}`, {
+    let query = querystring.stringify({ scope: 'playlist-read-private playlist-read-collaborative', offset: parseInt(offset), limit: 1 });
+    return fetch(`https://api.spotify.com/v1/me/playlists?${query}`, {
       method: 'get',
       headers: { 'Authorization': 'Bearer ' + accesstoken }
     }).then(res => res.json())
       .then(playlists => {
         totalPlaylists = totalPlaylists.concat(playlists.items)
-        if (playlists.items && playlists.items.length < 20) return res.status(200).json(totalPlaylists)
-        if (playlists.next) return getPlaylists(playlists.offset + 20)
+        return res.status(200).json(totalPlaylists)
+        // if (playlists.items && playlists.items.length < 20) return res.status(200).json(totalPlaylists)
+        // if (playlists.next) return getPlaylists(playlists.offset + 20)
       })
       .catch(error => console.log('Playlists Retrieval Error:', error));
   }
@@ -57,7 +82,7 @@ router.get('/playlist-tracks/:accesstoken/:playlistid', (req, res) => {
   let allTracks = [];
   
   let getPlaylistTracks = (offset = 0) => {
-    fetch(`https://api.spotify.com/v1/playlists/${playlistid}/tracks?` +  querystring.stringify({ offset: parseInt(offset) }), {
+    return fetch(`https://api.spotify.com/v1/playlists/${playlistid}/tracks?` +  querystring.stringify({ offset: parseInt(offset) }), {
       method: 'get',
       headers: { 'Authorization': 'Bearer ' + accesstoken }
     }).then(res => res.json())
@@ -92,7 +117,7 @@ router.get('/user/:accesstoken', (req, res) => {
       headers: { 'Authorization': 'Bearer ' + accessToken }
     }).then(res => res.json())
       .then(body => res.status(200).json(body))
-      .catch(error => console.log('User Retrieval Error:', error));
+      .catch(error => res.status(500).json({'User Retrieval Error': error }));
 
   }
 
@@ -108,7 +133,8 @@ router.get('/login', (req, res) => {
   
 	let state = generateRandomString(16);
 	let stateKey = 'spotify_auth_state';
-	let scopes = 'user-read-private user-read-email';
+  let scopes = 'user-read-private user-read-email user-library-modify user-library-read';
+  console.log(scopes);
   
 	res.cookie(stateKey, state);
 
@@ -117,7 +143,8 @@ router.get('/login', (req, res) => {
     client_id: client_id,
     scope: scopes,
     redirect_uri: redirect_uri,
-    state: state
+    state: state,
+    show_dialog: true
   });
   console.log(fullUrl);
 

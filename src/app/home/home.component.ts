@@ -40,6 +40,7 @@ export class HomeComponent implements OnInit {
 
   ngOnInit() {
     this.refreshToken = this.homeService.refreshToken;
+    console.log(this.refreshToken);
     if (this.refreshToken) {
       this.homeService.accessToken(this.refreshToken).subscribe((token: any) => {
         this.accessToken = token['access_token'] || null;
@@ -68,6 +69,7 @@ export class HomeComponent implements OnInit {
 
   /** Calls service to make Spotify user auth api call */
   authorizeUser() {
+    console.log('YAY');
     this.homeService.spotifyAuth().subscribe((url: any) => { 
       if (url && (typeof url === 'string')) window.open(url, '_self')
     });
@@ -140,5 +142,24 @@ export class HomeComponent implements OnInit {
   /** Formats playlists */
   formatPlaylists(): void {
     console.log(this.playlists);
+    let ids = [];
+
+    this.playlists[0].tracks.forEach((track: any) => ids.push(track.track.id));
+    let idGroups = []
+    for (let i = 0; i < ids.length / 50; i++) {
+      let group = ids.slice(i*50, i*50 + 50);
+      // let group = ids.slice(i*10, i*10 + 10);
+      // console.log(group.length);
+      idGroups.push(group);
+      // if (i < 2) idGroups.push(group.join(','));
+      // if (i < 2) idGroups.push(group);
+    }
+    console.log(idGroups);
+    idGroups = idGroups.slice(140);
+    from(idGroups).pipe(
+      concatMap(group => this.homeService.saveTracks(this.accessToken, group))
+    ).subscribe(res => {
+      // console.log(res);
+    })
   }
 }
